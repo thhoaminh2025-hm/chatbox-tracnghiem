@@ -94,7 +94,7 @@ if "search_now" not in st.session_state:
 # ===============================
 # 📁 UPLOAD FILE CSV
 # ===============================
-st.title("📘 Tiểu học Hòa Minh - Thi Cải Cách Hành Chính Và CĐS")
+st.title("TH Hòa Minh - Thi Cải Cách Hành Chính Và CĐS")
 
 uploaded_file = st.file_uploader(
     "Tải lên file questions.csv (các cột: id, question, correct_answer)",
@@ -166,4 +166,5 @@ if st.session_state.search_now:
 
     # Xóa last_query sau khi xong
     st.session_state.last_query = ""
+
 
