@@ -1,98 +1,51 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Chatbox Tìm Câu Hỏi Trắc Nghiệm", layout="centered")
+st.title("🔎 Tìm câu hỏi & đáp án trong CSV")
 
-st.markdown(
-    "<h1 style='text-align:center;'>🔍 Chatbox Tìm Câu Hỏi Trắc Nghiệm</h1>",
-    unsafe_allow_html=True
-)
+# --- Upload CSV ---
+uploaded_file = st.file_uploader("📁 Tải lên file questions.csv", type=["csv"])
 
-# ================================
-# HÀM ĐỌC CSV CHỐNG LỖI
-# ================================
-def load_csv(file):
-    # thử nhiều cách đọc khác nhau
-    for delimiter in [",", ";", "|", "\t"]:
-        try:
-            df = pd.read_csv(
-                file,
-                encoding="utf-8",
-                sep=delimiter,
-                engine="python"
-            ).dropna(how="all")  # bỏ dòng trống
-            if len(df.columns) >= 2:
-                return df
-        except:
-            pass
+df = None  # Khởi tạo biến tránh lỗi
 
-        try:
-            df = pd.read_csv(
-                file,
-                encoding="latin-1",
-                sep=delimiter,
-                engine="python"
-            ).dropna(how="all")
-            if len(df.columns) >= 2:
-                return df
-        except:
-            pass
+if uploaded_file:
+    try:
+        df = pd.read_csv(uploaded_file)
 
-    return None
+        # Kiểm tra 3 cột bắt buộc
+        required_cols = {"id", "question", "correct_answer"}
+        if not required_cols.issubset(df.columns):
+            st.error("❌ File CSV phải có 3 cột: id, question, correct_answer")
+            df = None
+
+    except Exception as e:
+        st.error("❌ Không thể đọc CSV. Vui lòng kiểm tra lại file.")
+        df = None
 
 
-# ================================
-# UPLOAD FILE CSV
-# ================================
-uploaded_file = st.file_uploader("📂 Tải file questions.csv lên", type=["csv"])
+# --- Ô nhập từ khóa (auto-clear sau khi tìm) ---
+keyword = st.text_input("🔍 Nhập từ khóa để tìm", key="search_box")
 
-if uploaded_file is not None:
-
-    df = load_csv(uploaded_file)
-
-    if df is None:
-        st.error("❌ Không thể đọc CSV. Vui lòng kiểm tra lại file (phải có cột id, question, correct_answer).")
-        st.stop()
-
-    # Kiểm tra cột
-    required_cols = ["id", "question", "correct_answer"]
-    for col in required_cols:
-        if col not in df.columns:
-            st.error(f"❌ Thiếu cột: {col}. File CSV phải đúng cấu trúc.")
-            st.stop()
-
-    # ====================================
-    # INPUT TỪ KHÓA (AUTO-CLEAR)
-    # ====================================
-    if "keyword" not in st.session_state:
-        st.session_state.keyword = ""
-
-    keyword = st.text_input("Nhập từ khóa để tìm câu hỏi:", key="keyword")
-
-    # ====================================
-    # TÌM KIẾM
-    # ====================================
-    if keyword.strip() != "":
-        key_lower = keyword.lower()
-
-        results = df[df["question"].str.lower().str.contains(key_lower)]
-
-        if len(results) == 0:
-            st.warning("❌ Không tìm thấy câu hỏi nào.")
+# --- Nút tìm kiếm ---
+if st.button("Tìm câu hỏi"):
+    if not df is None:
+        if keyword.strip() == "":
+            st.warning("⚠️ Vui lòng nhập từ khóa.")
         else:
-            for _, row in results.iterrows():
-                st.markdown("---")
-                st.markdown("### ❓ Câu hỏi:")
-                st.write(f"**{row['question']}**")
+            # Tìm trong câu hỏi
+            results = df[df["question"].str.contains(keyword, case=False, na=False)]
 
-                st.markdown("### ✅ Đáp án đúng:")
-                st.markdown(
-                    f"<div style='font-size:22px;color:green;font-weight:bold;'>{row['correct_answer']}</div>",
-                    unsafe_allow_html=True
-                )
+            if results.empty:
+                st.info("❗ Không tìm thấy kết quả.")
+            else:
+                for _, row in results.iterrows():
+                    st.write(f"### ❓ Câu hỏi:")
+                    st.write(row["question"])
+                    st.write(f"### ✅ Đáp án đúng:")
+                    st.success(row["correct_answer"])
+                    st.write("---")
 
-        # ⭐ AUTO-CLEAR TỪ KHÓA SAU KHI TÌM
-        st.session_state.keyword = ""
-
-else:
-    st.info("📌 Vui lòng tải file questions.csv lên để bắt đầu.")
+            # 🔥 Auto-clear từ khóa
+            st.session_state.search_box = ""
+    else:
+        st.error("❌ Không có dữ liệu CSV để tìm kiếm.")
