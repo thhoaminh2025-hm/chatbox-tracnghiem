@@ -1,33 +1,70 @@
-# -------------------------------
-# TÌM KIẾM (KHÔNG LỖI auto-clear)
-# -------------------------------
+import streamlit as st
+import pandas as pd
 
-# Tạo hàm clear để dùng trong on_click
-def clear_keyword():
+# ================================
+# 1. KHỞI TẠO SESSION STATE AN TOÀN
+# ================================
+if "keyword" not in st.session_state:
     st.session_state.keyword = ""
 
-# Tạo input có state key
-keyword = st.text_input("🔍 Nhập từ khóa để tìm", key="keyword")
+if "filter_subject" not in st.session_state:
+    st.session_state.filter_subject = ""
 
-# Khi nhấn nút, search sẽ chạy → sau đó auto-clear
-search_btn = st.button("Tìm câu hỏi", on_click=clear_keyword)
+if "filter_level" not in st.session_state:
+    st.session_state.filter_level = ""
 
-if search_btn:
-    if df is None:
-        st.error("❌ Chưa có dữ liệu. Hãy nhập link RAW hoặc tải file CSV.")
-    else:
-        if keyword.strip() == "":
-            st.warning("⚠️ Vui lòng nhập từ khóa.")
-        else:
-            # Tìm kiếm không phân biệt hoa/thường
-            results = df[df["question"].str.contains(keyword, case=False, na=False)]
+# ============================
+# 2. LOAD FILE DỮ LIỆU
+# ============================
+@st.cache_data
+def load_data():
+    df = pd.read_excel("data.xlsx")
+    return df
 
-            if results.empty:
-                st.info("❗ Không tìm thấy kết quả.")
-            else:
-                for _, row in results.iterrows():
-                    st.write("### ❓ Câu hỏi:")
-                    st.write(row["question"])
-                    st.write("### ✅ Đáp án đúng:")
-                    st.success(row["correct_answer"])
-                    st.write("---")
+df = load_data()
+
+st.title("Chatbox Trắc nghiệm – Bộ lọc câu hỏi")
+
+# ============================
+# 3. INPUT TỪ NGƯỜI DÙNG
+# ============================
+keyword = st.text_input("Tìm kiếm từ khoá", st.session_state.keyword)
+subject_list = ["", "Toán", "Tiếng Việt", "TNXH", "Khoa học", "Lịch sử"]
+level_list = ["", "Nhận biết", "Thông hiểu", "Vận dụng"]
+
+subject = st.selectbox("Chọn môn", subject_list, index=subject_list.index(st.session_state.filter_subject))
+level = st.selectbox("Chọn mức độ", level_list, index=level_list.index(st.session_state.filter_level))
+
+# ============================
+# 4. NÚT LỌC
+# ============================
+if st.button("Lọc dữ liệu"):
+    st.session_state.keyword = keyword
+    st.session_state.filter_subject = subject
+    st.session_state.filter_level = level
+
+# ============================
+# 5. ÁP DỤNG LỌC
+# ============================
+filtered_df = df.copy()
+
+if st.session_state.keyword:
+    filtered_df = filtered_df[filtered_df["question"].str.contains(st.session_state.keyword, case=False, na=False)]
+
+if st.session_state.filter_subject:
+    filtered_df = filtered_df[filtered_df["subject"] == st.session_state.filter_subject]
+
+if st.session_state.filter_level:
+    filtered_df = filtered_df[filtered_df["level"] == st.session_state.filter_level]
+
+st.write("### Kết quả lọc")
+st.dataframe(filtered_df)
+
+# ============================
+# 6. XÓA BỘ LỌC
+# ============================
+if st.button("Reset bộ lọc"):
+    st.session_state.keyword = ""
+    st.session_state.filter_subject = ""
+    st.session_state.filter_level = ""
+    st.experimental_rerun()
