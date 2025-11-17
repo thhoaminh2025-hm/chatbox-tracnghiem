@@ -1,51 +1,43 @@
 import streamlit as st
 import pandas as pd
+import requests
+from io import StringIO
 
-st.set_page_config(page_title="Chatbox Trắc nghiệm", page_icon="📘")
+# ================================
+# 1. TẢI CSV TRỰC TIẾP TỪ GITHUB
+# ================================
 
-st.title("📘 Chatbox Tìm Câu Hỏi Trắc Nghiệm")
+CSV_URL = "https://raw.githubusercontent.com/thhoaminh2025-hm/chatbox-tracnghiem/main/questions.csv"
 
-uploaded_file = st.file_uploader("Tải lên file questions.csv (id,question,correct_answer)", type=["csv"])
+@st.cache_data
+def load_questions_from_github(url):
+    response = requests.get(url)
+    response.raise_for_status()  # báo lỗi nếu URL sai
 
-def load_custom_csv(file):
-    """Đọc file CSV và xử lý dấu phẩy trong câu hỏi."""
-    lines = file.read().decode("utf-8").splitlines()
-    data = []
+    csv_data = StringIO(response.text)
 
-    for line in lines[1:]:  # bỏ dòng header
-        parts = line.split(",")
+    try:
+        df = pd.read_csv(csv_data, encoding="utf-8")
+    except:
+        df = pd.read_csv(csv_data, encoding="latin-1")
 
-        if len(parts) < 3:
-            continue
+    return df
 
-        id_val = parts[0]
-        correct_answer = parts[-1]
-        question = ",".join(parts[1:-1])  # ghép lại phần câu hỏi
-
-        data.append([id_val, question, correct_answer])
-
-    return pd.DataFrame(data, columns=["id", "question", "correct_answer"])
+df = load_questions_from_github(CSV_URL)
 
 
-if uploaded_file:
-    df = load_custom_csv(uploaded_file)
+# ================================
+# 2. GIAO DIỆN APP
+# ================================
+st.set_page_config(page_title="Chatbox Tìm Câu Hỏi Trắc Nghiệm", layout="centered")
 
-    st.write("📌 **Các cột đã đọc được:**", list(df.columns))
+st.markdown(
+    "<h1 style='text-align: center;'>🔍 Chatbox Tìm Câu Hỏi Trắc Nghiệm</h1>",
+    unsafe_allow_html=True
+)
 
-    query = st.text_input("🔍 Nhập từ khóa để tìm câu hỏi:")
+# Tạo session_state để reset text_input
+if "keyword" not in st.session_state:
+    st.session_state.keyword = ""
 
-    if query:
-        results = df[df["question"].str.contains(query, case=False, na=False)]
-
-        if results.empty:
-            st.warning("⚠ Không tìm thấy câu hỏi phù hợp.")
-        else:
-            for _, row in results.iterrows():
-                st.write("### ❓ Câu hỏi:")
-                st.write(row["question"])
-
-                st.write(f"**➡ Đáp án đúng:** {row['correct_answer']}")
-                st.markdown("---")
-
-else:
-    st.info("📂 Vui lòng tải lên file CSV để bắt đầu.")
+keyword = st.text_input("Nhập từ khóa để tìm câ_
