@@ -7,9 +7,9 @@ import pandas as pd
 @st.cache_data
 def load_questions():
     try:
-        df = pd.read_csv("/chatbox-tracnghiem/refs/heads/main/questions.csv", encoding="utf-8")
+        df = pd.read_csv("questions.csv", encoding="utf-8")
     except:
-        df = pd.read_csv("/chatbox-tracnghiem/refs/heads/main/questions.csv", encoding="latin-1")
+        df = pd.read_csv("questions.csv", encoding="latin-1")
     return df
 
 df = load_questions()
@@ -56,5 +56,6 @@ if keyword.strip() != "":
 
     # 🔥 Sau khi hiển thị kết quả → Xóa ô nhập
     st.session_state.keyword = ""
+
 
 
