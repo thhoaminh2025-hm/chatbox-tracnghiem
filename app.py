@@ -40,4 +40,33 @@ st.markdown(
 if "keyword" not in st.session_state:
     st.session_state.keyword = ""
 
-keyword = st.text_input("Nhập từ khóa để tìm câ_
+keyword = st.text_input("Nhập từ khóa để tìm câu hỏi:", key="keyword")
+
+
+# ================================
+# 3. TÌM KIẾM THEO TỪ KHÓA
+# ================================
+if keyword.strip() != "":
+    keyword_lower = keyword.lower()
+
+    results = df[df["question"].str.lower().str.contains(keyword_lower)]
+
+    if len(results) == 0:
+        st.warning("❌ Không tìm thấy câu hỏi nào phù hợp.")
+    else:
+        for _, row in results.iterrows():
+            st.markdown("---")
+            st.markdown("### ❓ Câu hỏi:")
+            st.write(f"**{row['question']}**")
+
+            st.markdown("### ✅ Đáp án đúng:")
+            st.markdown(
+                f"<div style='font-size:20px;color:green;font-weight:bold;'>"
+                f"{row['correct_answer']}</div>",
+                unsafe_allow_html=True
+            )
+
+    # ⭐ Sau khi xuất kết quả → reset ô nhập
+    st.session_state.keyword = ""
+else:
+    st.info("👆 Nhập từ khóa để bắt đầu tìm câu hỏi…")
