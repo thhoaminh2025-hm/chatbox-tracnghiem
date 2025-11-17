@@ -1,33 +1,36 @@
 import streamlit as st
 import pandas as pd
-import re
 
-st.set_page_config(page_title="Chatbox Trắc Nghiệm", layout="wide")
+st.set_page_config(page_title="Chatbox Trắc nghiệm", page_icon="📘")
 
-st.title("🔎 Chatbox tìm câu hỏi trắc nghiệm")
-st.markdown("Gõ **từ khóa** để tìm câu hỏi. Ứng dụng sẽ hiện câu hỏi + đáp án đúng.")
+st.title("📘 Chatbox Tìm Câu Hỏi Trắc Nghiệm")
 
-@st.cache_data
-def load_data():
-    return pd.read_csv("questions.csv")
+# Load file CSV
+uploaded_file = st.file_uploader("Tải lên file CSV (gồm question, answer)", type=["csv"])
 
-df = load_data()
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
 
-query = st.text_input("Nhập từ khóa để tìm câu hỏi:")
+    st.write("📌 **Các cột tìm thấy trong file:**", list(df.columns))
 
-if query:
-    tokens = query.lower().split()
-    def match(text):
-        t = str(text).lower()
-        return all(tok in t for tok in tokens)
+    # Kiểm tra cột
+    if "question" not in df.columns or "answer" not in df.columns:
+        st.error("❌ File CSV phải chứa 2 cột: 'question' và 'answer'. Vui lòng kiểm tra lại file.")
+        st.stop()
 
-    results = df[df['question'].apply(match)]
+    query = st.text_input("Nhập từ khóa để tìm câu hỏi:")
+    
+    if query:
+        # Tìm kiếm không phân biệt hoa thường
+        mask = df["question"].str.contains(query, case=False, na=False)
+        results = df[mask]
 
-    st.write(f"🔍 Tìm thấy **{len(results)}** câu hỏi:")
-
-    for _, row in results.iterrows():
-        st.markdown("---")
-        st.markdown(f"**Câu hỏi:** {row['question']}")
-        st.markdown(f"**Đáp án đúng:** 🟢 **{row['correct_answer']}**")
-        if 'choices' in df.columns and not pd.isna(row['choices']):
-            st.markdown(f"**Lựa chọn:** {row['choices']}")
+        if results.empty:
+            st.warning("⚠ Không tìm thấy câu hỏi nào phù hợp.")
+        else:
+            for i, row in results.iterrows():
+                st.write(f"**Câu hỏi:** {row['question']}")
+                st.write(f"➡ **Đáp án:** {row['answer']}")
+                st.markdown("---")
+else:
+    st.info("📂 Vui lòng tải lên file CSV để bắt đầu.")
