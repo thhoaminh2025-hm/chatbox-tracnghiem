@@ -11,7 +11,7 @@ uploaded_file = st.file_uploader("Tải lên file questions.csv (các cột: id,
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
-    st.write("📌 **Các cột trong file:**", list(df.columns))
+    #*st.write("📌 **Các cột trong file:**", list(df.columns))
 
     # Kiểm tra cột cần thiết
     required_cols = {"question", "correct_answer"}
@@ -39,3 +39,4 @@ if uploaded_file:
 
 else:
     st.info("📂 Vui lòng tải lên file CSV để bắt đầu.")
+
