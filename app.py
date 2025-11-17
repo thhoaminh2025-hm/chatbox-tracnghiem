@@ -1,70 +1,41 @@
 import streamlit as st
 import pandas as pd
 
-# ================================
-# 1. KHỞI TẠO SESSION STATE AN TOÀN
-# ================================
-if "keyword" not in st.session_state:
-    st.session_state.keyword = ""
+st.set_page_config(page_title="Chatbox Trắc nghiệm", page_icon="📘")
 
-if "filter_subject" not in st.session_state:
-    st.session_state.filter_subject = ""
+st.title("📘 Chatbox Tìm Câu Hỏi Trắc Nghiệm")
 
-if "filter_level" not in st.session_state:
-    st.session_state.filter_level = ""
+# Upload file CSV
+uploaded_file = st.file_uploader("Tải lên file questions.csv (các cột: id, question, correct_answer)", type=["csv"])
 
-# ============================
-# 2. LOAD FILE DỮ LIỆU
-# ============================
-@st.cache_data
-def load_data():
-    df = pd.read_excel("data.xlsx")
-    return df
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
 
-df = load_data()
+    st.write("📌 **Các cột trong file:**", list(df.columns))
 
-st.title("Chatbox Trắc nghiệm – Bộ lọc câu hỏi")
+    # Kiểm tra cột cần thiết
+    required_cols = {"question", "correct_answer"}
+    if not required_cols.issubset(df.columns):
+        st.error("❌ File CSV phải có 2 cột: 'question' và 'correct_answer'.")
+        st.stop()
 
-# ============================
-# 3. INPUT TỪ NGƯỜI DÙNG
-# ============================
-keyword = st.text_input("Tìm kiếm từ khoá", st.session_state.keyword)
-subject_list = ["", "Toán", "Tiếng Việt", "TNXH", "Khoa học", "Lịch sử"]
-level_list = ["", "Nhận biết", "Thông hiểu", "Vận dụng"]
+    query = st.text_input("🔍 Nhập từ khóa để tìm câu hỏi:")
 
-subject = st.selectbox("Chọn môn", subject_list, index=subject_list.index(st.session_state.filter_subject))
-level = st.selectbox("Chọn mức độ", level_list, index=level_list.index(st.session_state.filter_level))
+    if query:
+        # Tìm không phân biệt hoa/thường
+        mask = df["question"].str.contains(query, case=False, na=False)
+        results = df[mask]
 
-# ============================
-# 4. NÚT LỌC
-# ============================
-if st.button("Lọc dữ liệu"):
-    st.session_state.keyword = keyword
-    st.session_state.filter_subject = subject
-    st.session_state.filter_level = level
+        if results.empty:
+            st.warning("⚠ Không tìm thấy câu hỏi phù hợp.")
+        else:
+            for _, row in results.iterrows():
+                st.write("### ❓ Câu hỏi:")
+                st.write(row["question"])
 
-# ============================
-# 5. ÁP DỤNG LỌC
-# ============================
-filtered_df = df.copy()
+                st.write(f"**➡ Đáp án đúng:** {row['correct_answer']}")
 
-if st.session_state.keyword:
-    filtered_df = filtered_df[filtered_df["question"].str.contains(st.session_state.keyword, case=False, na=False)]
+                st.markdown("---")
 
-if st.session_state.filter_subject:
-    filtered_df = filtered_df[filtered_df["subject"] == st.session_state.filter_subject]
-
-if st.session_state.filter_level:
-    filtered_df = filtered_df[filtered_df["level"] == st.session_state.filter_level]
-
-st.write("### Kết quả lọc")
-st.dataframe(filtered_df)
-
-# ============================
-# 6. XÓA BỘ LỌC
-# ============================
-if st.button("Reset bộ lọc"):
-    st.session_state.keyword = ""
-    st.session_state.filter_subject = ""
-    st.session_state.filter_level = ""
-    st.experimental_rerun()
+else:
+    st.info("📂 Vui lòng tải lên file CSV để bắt đầu.")
