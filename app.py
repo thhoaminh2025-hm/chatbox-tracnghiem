@@ -7,7 +7,7 @@ from io import StringIO
 # 1. TẢI CSV TRỰC TIẾP TỪ GITHUB
 # ================================
 
-CSV_URL = "https://raw.githubusercontent.com/thhoaminh2025-hm/chatbox-tracnghiem/main/questions.csv"
+CSV_URL = "https://raw.githubusercontent.com/thhoaminh2025-hm/chatbox-tracnghiem/refs/heads/main/questions.csv"
 
 @st.cache_data
 def load_questions_from_github(url):
@@ -70,3 +70,4 @@ if keyword.strip() != "":
     st.session_state.keyword = ""
 else:
     st.info("👆 Nhập từ khóa để bắt đầu tìm câu hỏi…")
+
