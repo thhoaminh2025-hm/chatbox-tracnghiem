@@ -1,15 +1,23 @@
 import streamlit as st
 import pandas as pd
+import requests
 
 st.set_page_config(page_title="Chatbox Trắc nghiệm", page_icon="📘")
 
 st.title("📘 Chatbox Tìm Câu Hỏi Trắc Nghiệm")
 
-uploaded_file = st.file_uploader("Tải lên file questions.csv (id,question,correct_answer)", type=["csv"])
+# 🔗 Nhập link RAW của CSV từ GitHub
+csv_url = st.text_input("Nhập link RAW của file CSV trên GitHub:")
 
-def load_custom_csv(file):
-    """Đọc file CSV và xử lý dấu phẩy trong câu hỏi."""
-    lines = file.read().decode("utf-8").splitlines()
+def load_custom_csv_from_url(url):
+    """Tải CSV và xử lý dấu phẩy trong câu hỏi."""
+    response = requests.get(url)
+
+    if response.status_code != 200:
+        st.error("❌ Không tải được file CSV. Vui lòng kiểm tra lại link.")
+        return None
+
+    lines = response.text.splitlines()
     data = []
 
     for line in lines[1:]:  # bỏ dòng header
@@ -20,32 +28,32 @@ def load_custom_csv(file):
 
         id_val = parts[0]
         correct_answer = parts[-1]
-        question = ",".join(parts[1:-1])  # ghép lại phần câu hỏi
+        question = ",".join(parts[1:-1])  # ghép lại câu hỏi có dấu phẩy
 
         data.append([id_val, question, correct_answer])
 
     return pd.DataFrame(data, columns=["id", "question", "correct_answer"])
 
 
-if uploaded_file:
-    df = load_custom_csv(uploaded_file)
+# 🔍 Khi có link CSV
+if csv_url:
+    df = load_custom_csv_from_url(csv_url)
 
-    st.write("📌 **Các cột đã đọc được:**", list(df.columns))
+    if df is not None:
+        st.success("✅ Tải file thành công!")
 
-    query = st.text_input("🔍 Nhập từ khóa để tìm câu hỏi:")
+        query = st.text_input("Nhập từ khóa để tìm câu hỏi:")
 
-    if query:
-        results = df[df["question"].str.contains(query, case=False, na=False)]
+        if query:
+            results = df[df["question"].str.contains(query, case=False, na=False)]
 
-        if results.empty:
-            st.warning("⚠ Không tìm thấy câu hỏi phù hợp.")
-        else:
-            for _, row in results.iterrows():
-                st.write("### ❓ Câu hỏi:")
-                st.write(row["question"])
+            if results.empty:
+                st.warning("⚠ Không tìm thấy câu hỏi phù hợp.")
+            else:
+                for _, row in results.iterrows():
+                    st.write("### ❓ Câu hỏi:")
+                    st.write(row["question"])
 
-                st.write(f"**➡ Đáp án đúng:** {row['correct_answer']}")
-                st.markdown("---")
+                    st.write(f"**➡ Đáp án đúng:** {row['correct_answer']}")
 
-else:
-    st.info("📂 Vui lòng tải lên file CSV để bắt đầu.")
+                    st.markdown("---")
