@@ -5,83 +5,69 @@ from io import StringIO
 
 st.title("🔎 Tìm câu hỏi & đáp án trong CSV")
 
-st.subheader("📁 Chọn 1 trong 2 cách nhập dữ liệu:")
+# ======================
+# 1. HÀM RESET TỪ KHÓA
+# ======================
+def reset_keyword():
+    st.session_state.search_box = ""
 
-# =========================================
-# 1️⃣ ĐỌC LINK RAW GITHUB
-# =========================================
+# ======================
+# 2. TẢI DỮ LIỆU
+# ======================
 csv_url = st.text_input("🔗 Dán link RAW CSV (tùy chọn):")
-
 df = None
 
 if csv_url.strip():
     try:
-        st.info("⏳ Đang tải dữ liệu từ URL...")
-        response = requests.get(csv_url)
-
-        if response.status_code != 200:
-            st.error(f"❌ Không tải được CSV (HTTP {response.status_code}). Kiểm tra link RAW.")
+        r = requests.get(csv_url)
+        if r.status_code == 200:
+            df = pd.read_csv(StringIO(r.text))
+            st.success("✅ Đã tải CSV từ URL!")
         else:
-            df = pd.read_csv(StringIO(response.text))
-            st.success("✅ Đã tải thành công từ URL!")
-
+            st.error("❌ Không tải được file. Kiểm tra link RAW.")
     except Exception as e:
-        st.error(f"❌ Lỗi khi tải dữ liệu từ URL:\n{e}")
-        df = None
+        st.error(f"❌ Lỗi tải dữ liệu: {e}")
 
-
-# =========================================
-# 2️⃣ UPLOAD FILE CSV
-# =========================================
-uploaded_file = st.file_uploader("📥 Hoặc tải lên file questions.csv", type=["csv"])
-
-if uploaded_file and df is None:
+uploaded = st.file_uploader("📥 Hoặc chọn file CSV", type=["csv"])
+if uploaded and df is None:
     try:
-        df = pd.read_csv(uploaded_file)
+        df = pd.read_csv(uploaded)
         st.success("✅ Đã đọc file CSV thành công!")
     except Exception as e:
-        st.error(f"❌ Không thể đọc CSV: {e}")
-        df = None
+        st.error(f"❌ Không đọc được CSV: {e}")
 
-
-# =========================================
-# KIỂM TRA CẤU TRÚC CSV
-# =========================================
+# ======================
+# 3. KIỂM TRA CỘT
+# ======================
 if df is not None:
-    required_cols = {"id", "question", "correct_answer"}
-    if not required_cols.issubset(df.columns):
-        st.error("❌ CSV phải có 3 cột đúng tên: id, question, correct_answer")
+    required = {"id", "question", "correct_answer"}
+    if not required.issubset(df.columns):
+        st.error("❌ CSV phải có 3 cột: id, question, correct_answer")
         df = None
 
-
-# =========================================
-# 3️⃣ NHẬP TỪ KHÓA + TÌM KIẾM
-# =========================================
-if "search_box" not in st.session_state:
-    st.session_state.search_box = ""
-
+# ======================
+# 4. TÌM KIẾM
+# ======================
 keyword = st.text_input("🔍 Nhập từ khóa để tìm", key="search_box")
 
-search = st.button("Tìm câu hỏi")
+# NÚT TÌM CÓ CALLBACK CLEAR
+search = st.button("Tìm câu hỏi", on_click=reset_keyword)
 
 if search:
     if df is None:
-        st.error("❌ Chưa có dữ liệu. Nhập link RAW hoặc tải file CSV.")
+        st.error("❌ Chưa có dữ liệu.")
+    elif not keyword.strip():
+        st.warning("⚠️ Vui lòng nhập từ khóa.")
     else:
-        if keyword.strip() == "":
-            st.warning("⚠️ Vui lòng nhập từ khóa.")
+        results = df[df["question"].str.contains(keyword, case=False, na=False)]
+
+        if results.empty:
+            st.info("❗ Không tìm thấy kết quả.")
         else:
-            results = df[df["question"].str.contains(keyword, case=False, na=False)]
+            for _, row in results.iterrows():
+                st.write("### ❓ Câu hỏi")
+                st.write(row["question"])
 
-            if results.empty:
-                st.info("❗ Không tìm thấy kết quả.")
-            else:
-                for _, row in results.iterrows():
-                    st.write("### ❓ Câu hỏi")
-                    st.write(row["question"])
-                    st.write("### ✅ Đáp án đúng")
-                    st.success(row["correct_answer"])
-                    st.write("---")
-
-    # 🔥 AUTO CLEAR KEYWORD SAU KHI TÌM
-    st.session_state.search_box = ""
+                st.write("### 🟩 Đáp án đúng")
+                st.success(row["correct_answer"])
+                st.write("---")
