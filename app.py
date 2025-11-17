@@ -6,7 +6,7 @@ st.set_page_config(page_title="Chatbox Trắc nghiệm", page_icon="📘")
 st.title("📘 Chatbox Tìm Câu Hỏi Trắc Nghiệm")
 
 # Upload file CSV
-uploaded_file = st.file_uploader("Tải lên file questions.csv (các cột: id, question, correct_answer, choices)", type=["csv"])
+uploaded_file = st.file_uploader("Tải lên file questions.csv (các cột: id, question, correct_answer)", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
@@ -16,19 +16,20 @@ if uploaded_file:
     # Kiểm tra cột cần thiết
     required_cols = {"question", "correct_answer"}
     if not required_cols.issubset(df.columns):
-        st.error("❌ File CSV phải có cột: 'question' và 'correct_answer'.")
+        st.error("❌ File CSV phải có 2 cột: 'question' và 'correct_answer'.")
         st.stop()
 
     query = st.text_input("🔍 Nhập từ khóa để tìm câu hỏi:")
 
     if query:
+        # Tìm không phân biệt hoa/thường
         mask = df["question"].str.contains(query, case=False, na=False)
         results = df[mask]
 
         if results.empty:
             st.warning("⚠ Không tìm thấy câu hỏi phù hợp.")
         else:
-            for i, row in results.iterrows():
+            for _, row in results.iterrows():
                 st.write("### ❓ Câu hỏi:")
                 st.write(row["question"])
 
