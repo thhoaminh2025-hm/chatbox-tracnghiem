@@ -9,34 +9,76 @@ st.markdown(
 )
 
 # ================================
-# 1. UPLOAD FILE CSV
+# HÀM ĐỌC CSV CHỐNG LỖI
+# ================================
+def load_csv(file):
+    # thử nhiều cách đọc khác nhau
+    for delimiter in [",", ";", "|", "\t"]:
+        try:
+            df = pd.read_csv(
+                file,
+                encoding="utf-8",
+                sep=delimiter,
+                engine="python"
+            ).dropna(how="all")  # bỏ dòng trống
+            if len(df.columns) >= 2:
+                return df
+        except:
+            pass
+
+        try:
+            df = pd.read_csv(
+                file,
+                encoding="latin-1",
+                sep=delimiter,
+                engine="python"
+            ).dropna(how="all")
+            if len(df.columns) >= 2:
+                return df
+        except:
+            pass
+
+    return None
+
+
+# ================================
+# UPLOAD FILE CSV
 # ================================
 uploaded_file = st.file_uploader("📂 Tải file questions.csv lên", type=["csv"])
 
 if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file, encoding="utf-8")
-    except:
-        df = pd.read_csv(uploaded_file, encoding="latin-1")
 
-    # ================================
-    # 2. INPUT TỪ KHÓA (CÓ AUTO-CLEAR)
-    # ================================
+    df = load_csv(uploaded_file)
+
+    if df is None:
+        st.error("❌ Không thể đọc CSV. Vui lòng kiểm tra lại file (phải có cột id, question, correct_answer).")
+        st.stop()
+
+    # Kiểm tra cột
+    required_cols = ["id", "question", "correct_answer"]
+    for col in required_cols:
+        if col not in df.columns:
+            st.error(f"❌ Thiếu cột: {col}. File CSV phải đúng cấu trúc.")
+            st.stop()
+
+    # ====================================
+    # INPUT TỪ KHÓA (AUTO-CLEAR)
+    # ====================================
     if "keyword" not in st.session_state:
         st.session_state.keyword = ""
 
     keyword = st.text_input("Nhập từ khóa để tìm câu hỏi:", key="keyword")
 
-    # ================================
-    # 3. XỬ LÝ TÌM KIẾM
-    # ================================
+    # ====================================
+    # TÌM KIẾM
+    # ====================================
     if keyword.strip() != "":
-        keyword_lower = keyword.lower()
+        key_lower = keyword.lower()
 
-        results = df[df["question"].str.lower().str.contains(keyword_lower)]
+        results = df[df["question"].str.lower().str.contains(key_lower)]
 
         if len(results) == 0:
-            st.warning("❌ Không tìm thấy câu hỏi nào phù hợp.")
+            st.warning("❌ Không tìm thấy câu hỏi nào.")
         else:
             for _, row in results.iterrows():
                 st.markdown("---")
@@ -45,12 +87,11 @@ if uploaded_file is not None:
 
                 st.markdown("### ✅ Đáp án đúng:")
                 st.markdown(
-                    f"<div style='font-size:20px;color:green;font-weight:bold;'>"
-                    f"{row['correct_answer']}</div>",
+                    f"<div style='font-size:22px;color:green;font-weight:bold;'>{row['correct_answer']}</div>",
                     unsafe_allow_html=True
                 )
 
-        # ⭐ AUTO-CLEAR sau khi hiển thị kết quả
+        # ⭐ AUTO-CLEAR TỪ KHÓA SAU KHI TÌM
         st.session_state.keyword = ""
 
 else:
